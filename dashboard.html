@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Financial & Inventory Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.0.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@1.0.0"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+</head>
+<body>
+  <div class="top-header">
+    <h1>Financial & Inventory Dashboard</h1>
+  </div>
+  <div class="navbar">
+    <button class="active" data-tab="income">Income Statement</button>
+    <button data-tab="balance">Balance Sheet</button>
+    <button data-tab="cashflow">Cash Flow</button>
+    <button data-tab="inventory">Inventory Management</button>
+  </div>
+
+  <div id="income" class="tab-section active"><div class="income-box"></div></div>
+  <div id="balance" class="tab-section"><div class="balance-box"></div></div>
+  <div id="cashflow" class="tab-section"><div class="cashflow-card"></div></div>
+  <div id="inventory" class="tab-section"><div class="dashboard-container"></div></div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
