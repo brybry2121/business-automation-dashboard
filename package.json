@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "@stripe/stripe-js": "^7.5.0",
+    "stripe": "^18.3.0"
+  },
+  "name": "business-automation-dashboard",
+  "version": "1.0.0",
+  "main": "dashboard.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

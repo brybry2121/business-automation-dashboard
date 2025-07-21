@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Financial & Inventory Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.0.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@1.0.0"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+</head>
+<body>
+  <div class="top-header">
+    <h1>Financial & Inventory Dashboard</h1>
+  </div>
+
+  <div class="navbar">
+    <button class="active" data-tab="income">Income Statement</button>
+    <button data-tab="balance">Balance Sheet</button>
+    <button data-tab="cashflow">Cash Flow</button>
+    <button data-tab="inventory">Inventory Management</button>
+  </div>
+
+  <div id="income" class="tab-section active"><div class="income-box"></div></div>
+  <div id="balance" class="tab-section"><div class="balance-box"></div></div>
+  <div id="cashflow" class="tab-section"><div class="cashflow-card"></div></div>
+  <div id="inventory" class="tab-section"><div class="dashboard-container"></div></div>
+
+  <!-- Upgrade/Subscribe Section using Stripe Payment Link -->
+  <div id="stripe-payment" style="max-width:400px; margin:2em auto; padding:2em; border:1px solid #eee; text-align: center;">
+    <h2>Subscribe for Full Access</h2>
+    <p style="margin-bottom: 1em;">Unlock the full dashboard by subscribing below</p>
+    <a href="https://buy.stripe.com/3cIdRaa42brx01n9XBg3602" target="_blank" rel="noopener">
+      <button style="padding: 1em 2em; font-size: 1.2em; background: #635bff; color: #fff; border: none; border-radius: 5px; cursor: pointer;">
+        Upgrade to Premium
+      </button>
+    </a>
+    <p style="color: green; margin-top: 1em;">You will be redirected to a secure Stripe checkout.</p>
+  </div>
+
+  <!-- Optional Access Link for Existing Subscribers -->
+  <div style="text-align:center; margin-top:2em;">
+    <p>Already subscribed?</p>
+    <a href="/" style="font-weight:bold;">Access Dashboard</a>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
