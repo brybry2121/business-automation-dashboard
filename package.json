@@ -1,0 +1,17 @@
+{
+  "name": "business-automation-dashboard",
+  "version": "1.0.0",
+  "description": "This project is a web-based dashboard for managing and visualizing core financial and inventory activities for small businesses and organizations.",
+  "main": "dashboard.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "stripe": "^18.3.0"
+  }
+}
