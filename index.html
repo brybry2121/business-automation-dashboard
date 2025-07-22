@@ -12,35 +12,44 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
 </head>
 <body>
+  <div id="payment-box" style="display:none;">
+  <h2>Your free trial has ended</h2>
+  <p>Please subscribe to continue using the dashboard.</p>
+  <a href="https://buy.stripe.com/6oU8wQ4JIfHNg0ld9Ng3604">
+    <button class="pay-btn">Subscribe via Stripe</button>
+  </a>
+</div>
   <div class="top-header">
     <h1>Financial & Inventory Dashboard</h1>
   </div>
-  <div class="navbar">
-    <button class="active" data-tab="income">Income Statement</button>
-    <button data-tab="balance">Balance Sheet</button>
-    <button data-tab="cashflow">Cash Flow</button>
-    <button data-tab="inventory">Inventory Management</button>
+  <div id="dashboard-content">
+    <div class="navbar">
+      <button class="active" data-tab="income">Income Statement</button>
+      <button data-tab="balance">Balance Sheet</button>
+      <button data-tab="cashflow">Cash Flow</button>
+      <button data-tab="inventory">Inventory Management</button>
+    </div>
+    <div id="income" class="tab-section active"><div class="income-box"></div></div>
+    <div id="balance" class="tab-section"><div class="balance-box"></div></div>
+    <div id="cashflow" class="tab-section"><div class="cashflow-card"></div></div>
+    <div id="inventory" class="tab-section"><div class="dashboard-container"></div></div>
   </div>
 
-  <div id="income" class="tab-section active"><div class="income-box"></div></div>
-  <div id="balance" class="tab-section"><div class="balance-box"></div></div>
-  <div id="cashflow" class="tab-section"><div class="cashflow-card"></div></div>
-  <div id="inventory" class="tab-section"><div class="dashboard-container"></div></div>
-
-  <!-- Upgrade/Subscribe Section using Stripe Payment Link -->
-  <div id="stripe-payment" style="max-width:400px; margin:2em auto; padding:2em; border:1px solid #eee; text-align: center;">
+  <!-- Stripe Payment Section for Subscription -->
+  <div id="stripe-payment" style="max-width:400px; margin:2em auto; padding:2em; border:1px solid #eee; text-align: center; display:none;">
     <h2>Subscribe for Full Access</h2>
     <p style="margin-bottom: 1em;">Unlock the full dashboard by subscribing below</p>
-    <a href="https://buy.stripe.com/3cIdRaa42brx01n9XBg3602" target="_blank" rel="noopener">
+    <!-- Stripe link with redirect to success.html (replace yourdomain.com with your real domain) -->
+    <a href="https://buy.stripe.com/6oU8wQ4JIfHNg0ld9Ng3604?redirect=https://yourdomain.com/success.html" target="_blank" rel="noopener">
       <button style="padding: 1em 2em; font-size: 1.2em; background: #635bff; color: #fff; border: none; border-radius: 5px; cursor: pointer;">
         Upgrade to Premium
       </button>
     </a>
     <p style="color: green; margin-top: 1em;">You will be redirected to a secure Stripe checkout.</p>
+    <p style="color: #555; margin-top: 1em;">Your 14-day free trial will end before payment is needed.</p>
   </div>
 
-  <!-- Optional Access Link for Existing Subscribers -->
-  <div style="text-align:center; margin-top:2em;">
+  <div id="dashboard-access-link" style="text-align:center; margin-top:2em;">
     <p>Already subscribed?</p>
     <a href="/" style="font-weight:bold;">Access Dashboard</a>
   </div>

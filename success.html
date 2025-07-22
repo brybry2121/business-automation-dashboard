@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment Success</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    // Set unlock flag for dashboard
+    localStorage.setItem('paid', 'yes');
+    // Optionally reset trialStart so future visits are always unlocked
+    // localStorage.removeItem('trialStart');
+    setTimeout(function() {
+      window.location.href = '/';
+    }, 2000);
+  </script>
+</head>
+<!-- success.html -->
+<script>
+  localStorage.setItem('paid', 'yes');
+  window.location.href = '/dashboard.html'; // Or your dashboard route
+</script>
+<body>
+  <h2>Payment Successful!</h2>
+  <p>Your dashboard access is now unlocked.</p>
+  <p>Redirecting you to your dashboard...</p>
+</body>
+</html>

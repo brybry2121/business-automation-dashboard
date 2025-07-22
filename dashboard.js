@@ -1,4 +1,28 @@
 // Tab navigation: ensures initial and tab switching logic
+// On dashboard load:
+const now = Date.now();
+const trialStart = localStorage.getItem('trialStart');
+const paid = localStorage.getItem('paid');
+
+if (!trialStart) {
+  localStorage.setItem('trialStart', now);
+}
+if (paid === 'yes') document.querySelector('.pay-btn')?.remove();
+// Check access eligibility
+function checkAccess() {
+  const start = Number(localStorage.getItem('trialStart'));
+  const daysElapsed = (Date.now() - start) / (1000 * 60 * 60 * 24);
+  const isTrialActive = daysElapsed <= 14;
+
+  if (paid === 'yes' || isTrialActive) {
+    document.getElementById('dashboard-content').style.display = 'block';
+    document.getElementById('payment-box').style.display = 'none';
+  } else {
+    document.getElementById('dashboard-content').style.display = 'none';
+    document.getElementById('payment-box').style.display = 'block';
+  }
+}
+checkAccess();
 document.querySelectorAll('.navbar button').forEach(btn => {
   btn.onclick = () => {
     document.querySelectorAll('.navbar button').forEach(b => b.classList.remove('active'));
