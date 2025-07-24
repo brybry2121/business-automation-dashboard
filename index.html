@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
 </head>
 <body>
+  
   <div id="payment-box" style="display:none;">
   <h2>Your free trial has ended</h2>
   <p>Please subscribe to continue using the dashboard.</p>
@@ -45,6 +46,17 @@
         Upgrade to Premium
       </button>
     </a>
+    <form id="add-form" autocomplete="off">
+  <input required id="sku" placeholder="SKU" maxlength="12">
+  <input required id="name" placeholder="Name">
+  <input required id="unit-cost" type="number" min="0" step="0.01" placeholder="Unit Cost">
+  <input required id="selling-price" type="number" min="0" step="0.01" placeholder="Selling Price">
+  <input required id="available-qty" type="number" min="0" step="1" placeholder="Available Qty">
+  <!-- Add Depreciation Rate Here -->
+  <input id="depreciation-rate" type="number" min="0" max="100" step="0.01" placeholder="Depreciation % (per year)">
+  <!-- ...other fields... -->
+  <button type="submit">Add Item</button>
+</form>
     <p style="color: green; margin-top: 1em;">You will be redirected to a secure Stripe checkout.</p>
     <p style="color: #555; margin-top: 1em;">Your 14-day free trial will end before payment is needed.</p>
   </div>
@@ -55,5 +67,8 @@
   </div>
 
   <script src="dashboard.js"></script>
+  <script src="linkstatus.js"></script>
+  <script src="inventoryActions.js"></script>
+   <script src="updateLinkedStatements.js"></script>
 </body>
 </html>

@@ -1,19 +1,49 @@
-// Tab navigation: ensures initial and tab switching logic
-// On dashboard load:
-const now = Date.now();
-const trialStart = localStorage.getItem('trialStart');
-const paid = localStorage.getItem('paid');
+// ----- Persistent Data Structure -----
+let businessData = JSON.parse(localStorage.getItem('businessData')) || {
+  incomeStatement: {
+    revenues: [],
+    beginInventory: [],
+    purchases: [],
+    endInventory: [],
+    operatingExpenses: [],
+    otherIncome: [],
+    otherExpense: [],
+    taxes: []
+  },
+  balanceSheet: {
+    currentAssets: [],
+    fixedAssets: [],
+    currentLiabilities: [],
+    longLiabilities: [],
+    contributionCapital: [],
+    otherCapital: []
+  },
+  cashFlow: {
+    operIn: [],
+    operOut: [],
+    investIn: [],
+    investOut: [],
+    finIn: [],
+    finOut: []
+  },
+  inventory: []
+};
 
-if (!trialStart) {
-  localStorage.setItem('trialStart', now);
+// Helper to save to localStorage anytime data changes
+function saveData() {
+  localStorage.setItem('businessData', JSON.stringify(businessData));
 }
-if (paid === 'yes') document.querySelector('.pay-btn')?.remove();
-// Check access eligibility
-function checkAccess() {
-  const start = Number(localStorage.getItem('trialStart'));
-  const daysElapsed = (Date.now() - start) / (1000 * 60 * 60 * 24);
-  const isTrialActive = daysElapsed <= 14;
 
+// ----- Stripe/Trial Access -----
+const now = Date.now();
+let trialStart = localStorage.getItem('trialStart');
+let paid = localStorage.getItem('paid');
+if (!trialStart) localStorage.setItem('trialStart', now);
+function checkAccess() {
+  trialStart = Number(localStorage.getItem('trialStart'));
+  paid = localStorage.getItem('paid');
+  const daysElapsed = (Date.now() - trialStart) / (1000 * 60 * 60 * 24);
+  const isTrialActive = daysElapsed <= 14;
   if (paid === 'yes' || isTrialActive) {
     document.getElementById('dashboard-content').style.display = 'block';
     document.getElementById('payment-box').style.display = 'none';
@@ -23,6 +53,8 @@ function checkAccess() {
   }
 }
 checkAccess();
+
+// ----- Tab Navigation -----
 document.querySelectorAll('.navbar button').forEach(btn => {
   btn.onclick = () => {
     document.querySelectorAll('.navbar button').forEach(b => b.classList.remove('active'));
@@ -36,7 +68,7 @@ document.querySelectorAll('.navbar button').forEach(btn => {
   };
 });
 
-// --- Addable List (used by financial tabs) ---
+// ----- Addable List Utility -----
 function AddableList(container, { subtitle, items, setItems, totalLabel, positive = true, allowEmpty = false, inOrOut = "in" }) {
   function render() {
     container.innerHTML = '';
@@ -108,16 +140,18 @@ function AddableList(container, { subtitle, items, setItems, totalLabel, positiv
       subTotalDiv.textContent = `${totalLabel || "Subtotal"}: $${subtotal}`;
       container.appendChild(subTotalDiv);
     }
+    saveData(); // Save on every change
   }
   render();
   return render;
 }
 
-// ----------- Income Statement -----------
+// ----- Income Statement -----
 function renderIncomeStatement() {
   const box = document.querySelector('.income-box');
   box.innerHTML = `
     <h2>Income Statement Breakdown</h2>
+    <button onclick="window.print()" class="print-btn">🖨️ Print/Export</button>
     <div class="inc-section">
       <div class="inc-subhead">1️⃣ Revenue</div>
       <div class="inc-desc">Money earned from core operations.</div>
@@ -157,29 +191,21 @@ function renderIncomeStatement() {
     <div class="inc-row-final" id="final-net-income"></div>
   `;
 
-  // State for income statement
-  const state = {
-    revenues: [],
-    beginInventory: [],
-    purchases: [],
-    endInventory: [],
-    operatingExpenses: [],
-    otherIncome: [],
-    otherExpense: [],
-    taxes: []
-  };
+  const state = businessData.incomeStatement;
+  // Auto-sync inventory COGS
+  state.beginInventory = businessData.inventory.map(item => ({
+    name: item.name,
+    amount: item.unitCost * item.availableQty
+  }));
 
   function updateAll() {
-    // Revenue
     AddableList(document.getElementById("revenue-list"), {
       items: state.revenues,
-      setItems: arr => { state.revenues = arr; updateAll(); },
-      positive: true
+      setItems: arr => { state.revenues = arr; updateAll(); }
     });
     const totalRevenue = state.revenues.reduce((sum, i) => sum + i.amount, 0);
     document.getElementById("total-revenue").textContent = `Total Revenue = $${totalRevenue}`;
 
-    // COGS
     AddableList(document.getElementById("begin-inventory-list"), {
       items: state.beginInventory,
       setItems: arr => { state.beginInventory = arr; updateAll(); },
@@ -203,12 +229,10 @@ function renderIncomeStatement() {
       `COGS = Beginning Inventory + Purchases − Ending Inventory
 COGS = $${totalBeginInventory} + $${totalPurchases} − $${totalEndInventory} = $${totalCOGS}`;
 
-    // Gross Profit
     const grossProfit = totalRevenue - totalCOGS;
     document.getElementById("gross-profit").innerHTML =
       `3️⃣ Gross Profit = Revenue − COGS = $${totalRevenue} − ($${totalCOGS}) = <span style="font-size:18px;">$${grossProfit}</span>`;
 
-    // Operating Expenses
     AddableList(document.getElementById("operating-expenses-list"), {
       items: state.operatingExpenses,
       setItems: arr => { state.operatingExpenses = arr; updateAll(); },
@@ -218,12 +242,10 @@ COGS = $${totalBeginInventory} + $${totalPurchases} − $${totalEndInventory} = 
     document.getElementById("total-operating-expenses").textContent =
       `Total Operating Expenses = $${totalOperatingExpenses}`;
 
-    // Operating Income
     const operatingIncome = grossProfit - totalOperatingExpenses;
     document.getElementById("operating-income").innerHTML =
       `5️⃣ Operating Income = Gross Profit − Operating Expenses = $${grossProfit} − $${totalOperatingExpenses} = <span style="font-size:18px;">$${operatingIncome}</span>`;
 
-    // Other Income/Expense
     AddableList(document.getElementById("other-income-list"), {
       items: state.otherIncome,
       setItems: arr => { state.otherIncome = arr; updateAll(); },
@@ -240,12 +262,10 @@ COGS = $${totalBeginInventory} + $${totalPurchases} − $${totalEndInventory} = 
     document.getElementById("net-other").innerHTML =
       `Net Other = $${totalOtherIncome} − $${totalOtherExpense} = <span style="color:#187a27;">$${netOther}</span>`;
 
-    // Net Income Before Tax
     const netIncomeBeforeTax = operatingIncome + netOther;
     document.getElementById("net-income-before-tax").innerHTML =
       `7️⃣ Net Income Before Tax = Operating Income + Net Other = $${operatingIncome} + $${netOther} = <span style="font-size:18px;">$${netIncomeBeforeTax}</span>`;
 
-    // Taxes
     AddableList(document.getElementById("taxes-list"), {
       items: state.taxes,
       setItems: arr => { state.taxes = arr; updateAll(); },
@@ -254,7 +274,6 @@ COGS = $${totalBeginInventory} + $${totalPurchases} − $${totalEndInventory} = 
     const totalTaxes = state.taxes.reduce((sum, i) => sum + i.amount, 0);
     document.getElementById("total-taxes").textContent = `Total Taxes = $${totalTaxes}`;
 
-    // Final Net Income
     const netIncome = netIncomeBeforeTax - totalTaxes;
     document.getElementById("final-net-income").innerHTML =
       `9️⃣ Net Income = Net Income Before Tax − Taxes = $${netIncomeBeforeTax} − $${totalTaxes} = <span style="font-size:22px;">$${netIncome}</span>`;
@@ -262,10 +281,11 @@ COGS = $${totalBeginInventory} + $${totalPurchases} − $${totalEndInventory} = 
   updateAll();
 }
 
-// ----------- Balance Sheet -----------
+// ----- Balance Sheet -----
 function renderBalanceSheet() {
   const box = document.querySelector('.balance-box');
   box.innerHTML = `
+    <button onclick="window.print()" class="print-btn">🖨️ Print/Export</button>
     <div class="section-heading">Assets</div>
     <div class="addable-list-section">
       <div class="sub-heading">Current Assets</div>
@@ -306,16 +326,7 @@ function renderBalanceSheet() {
     <div class="balance-status" id="balance-status"></div>
     <div class="final-assets" id="final-total-assets"></div>
   `;
-
-  const state = {
-    currentAssets: [],
-    fixedAssets: [],
-    currentLiabilities: [],
-    longLiabilities: [],
-    contributionCapital: [],
-    otherCapital: []
-  };
-
+  const state = businessData.balanceSheet;
   function updateAll() {
     [
       { key: "currentAssets", label: "total-current-assets", list: "current-assets-list" },
@@ -339,7 +350,6 @@ function renderBalanceSheet() {
         `${document.querySelector(`#${sec.list}`).previousElementSibling.textContent}: $${state[sec.key].reduce((sum, i) => sum + i.amount, 0)}`;
     });
 
-    // Totals
     const totalCurrentAssets = state.currentAssets.reduce((sum, i) => sum + i.amount, 0);
     const totalFixedAssets = state.fixedAssets.reduce((sum, i) => sum + i.amount, 0);
     const totalAssets = totalCurrentAssets + totalFixedAssets;
@@ -372,10 +382,11 @@ function renderBalanceSheet() {
   updateAll();
 }
 
-// ----------- Cash Flow -----------
+// ----- Cash Flow -----
 function renderCashFlow() {
   const box = document.querySelector('.cashflow-card');
   box.innerHTML = `
+    <button onclick="window.print()" class="print-btn">🖨️ Print/Export</button>
     <div class="section-title">Cash Flows from Operating Activities (Core business)</div>
     <div id="oper-in-list"></div>
     <div id="oper-out-list"></div>
@@ -390,14 +401,7 @@ function renderCashFlow() {
     <div class="cf-total-row" id="fin-total"></div>
     <div class="cf-final-total" id="net-cash-change"></div>
   `;
-  const state = {
-    operIn: [],
-    operOut: [],
-    investIn: [],
-    investOut: [],
-    finIn: [],
-    finOut: []
-  };
+  const state = businessData.cashFlow;
   function updateAll() {
     AddableList(document.getElementById("oper-in-list"), {
       subtitle: "➕ Adjusted for inflows",
@@ -469,7 +473,16 @@ function renderCashFlow() {
   updateAll();
 }
 
-// ----------- Inventory Management (Responsive + Dropdown + Auto Tax Code) -----------
+// ----- TAX RATE HELPER -----
+function taxRateForCategory(cat) {
+  // Example rates; adjust as needed
+  if (cat === "Sales Tax") return 0.07;
+  if (cat === "VAT") return 0.10;
+  if (cat === "Excise") return 0.05;
+  return 0;
+}
+
+// ----- Inventory Management -----
 function renderInventoryDashboard() {
   const container = document.querySelector('.dashboard-container');
   container.innerHTML = `
@@ -479,91 +492,54 @@ function renderInventoryDashboard() {
         <thead>
           <tr>
             <th>Dashboard Field</th>
-            <th>Quote Detail Explanation</th>
+            <th>Detail</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td>SKU</td><td>Unique identifier used in the quote to reference the exact item.</td></tr>
-          <tr><td>Name</td><td>Item name as it will appear on the quote and invoice.</td></tr>
-          <tr><td>Category</td><td>Group label (e.g. Electronics, Stationery)—helps in filtering quotes.</td></tr>
-          <tr><td>Unit Cost</td><td>Price per unit, used to calculate total price in the quote.</td></tr>
-          <tr><td>Available Qty</td><td>Number of units available for sale.</td></tr>
-          <tr><td>Product Description</td><td>Short detail—highlight features, model, usage, or relevant specs.</td></tr>
-          <tr><td>Tax Code</td><td>Assigns correct tax rules per item type.</td></tr>
-          <tr><td>Tax Exempt</td><td>Flag for items exempt from tax (e.g. groceries, medical supplies).</td></tr>
-          <tr><td>ZIP Code</td><td>Used for location-aware tax calculations.</td></tr>
-          <tr><td>Expiry Date</td><td>Relevant for perishable goods—can be shown as “Best before: [Date]”.</td></tr>
+          <tr><td>SKU</td><td>Unique identifier</td></tr>
+          <tr><td>Name</td><td>Item name</td></tr>
+          <tr><td>Category</td><td>Group label</td></tr>
+          <tr><td>Unit Cost</td><td>Price per unit</td></tr>
+          <tr><td>Selling Price</td><td>Sales price per unit</td></tr>
+          <tr><td>Available Qty</td><td>Number available for sale</td></tr>
+          <tr><td>Tax Category</td><td>Tax rules for this item</td></tr>
         </tbody>
       </table>
     </details>
     <div class="category-filters" id="category-filters"></div>
-    <input id="category-search" type="text" placeholder="Type category to filter (e.g. Stationery, Electronics, Grocery...)" style="margin:10px 0; width:100%;">
-
+    <input id="category-search" type="text" placeholder="Type category to filter..." style="margin:10px 0; width:100%;">
     <form id="add-form" autocomplete="off">
       <div class="form-row">
         <input required id="sku" placeholder="SKU" maxlength="12">
         <input required id="name" placeholder="Name">
-        <div style="position:relative;flex:1;">
-          <select id="category" required>
-            <option value="">Select Category...</option>
-            <option value="Grocery">Grocery</option>
-            <option value="Medical">Medical</option>
-            <option value="Electronics">Electronics</option>
-            <option value="Stationery">Stationery</option>
-            <option value="Office Supplies">Office Supplies</option>
-            <option value="Personal Care">Personal Care</option>
-            <option value="Toys">Toys</option>
-            <option value="Beverages">Beverages</option>
-            <option value="Clothing">Clothing</option>
-            <option value="Cleaning Supplies">Cleaning Supplies</option>
-          </select>
-        </div>
-        <div style="display:flex;flex-direction:row;align-items:center;gap:4px;">
-          <input required id="unit-cost" type="number" min="0" step="0.01" placeholder="Unit Cost" style="width:100px;">
-          <select id="cost-unit">
-            <option value="item">per item</option>
-            <option value="kg">per kg</option>
-            <option value="liter">per liter</option>
-            <option value="pack">per pack</option>
-            <option value="box">per box</option>
-          </select>
-        </div>
-        <div style="display:flex;flex-direction:row;align-items:center;gap:4px;">
-          <input required id="available-qty" type="number" min="0" step="1" placeholder="Available Qty" style="width:90px;">
-          <select id="qty-unit">
-            <option value="pcs">pcs</option>
-            <option value="box">box</option>
-            <option value="kg">kg</option>
-            <option value="liter">liter</option>
-            <option value="pack">pack</option>
-          </select>
-        </div>
-        <select id="tax-code">
-          <option value="TX-GROCERY">TX-GROCERY</option>
-          <option value="TX-ELECTRONICS">TX-ELECTRONICS</option>
-          <option value="TX-MEDICAL">TX-MEDICAL</option>
-          <option value="TX-GENERAL">TX-GENERAL</option>
+        <select id="category" required>
+          <option value="">Select Category...</option>
+          <option value="Grocery">Grocery</option>
+          <option value="Medical">Medical</option>
+          <option value="Electronics">Electronics</option>
+          <option value="Stationery">Stationery</option>
+          <option value="Office Supplies">Office Supplies</option>
+          <option value="Personal Care">Personal Care</option>
+          <option value="Toys">Toys</option>
+          <option value="Beverages">Beverages</option>
+          <option value="Clothing">Clothing</option>
+          <option value="Cleaning Supplies">Cleaning Supplies</option>
         </select>
-        <label style="margin-left:8px;"><input type="checkbox" id="tax-exempt"> Tax Exempt</label>
-        <input id="zip-code" placeholder="ZIP Code" maxlength="10" style="width:80px;">
-      </div>
-      <div class="form-row">
-        <input id="description" placeholder="Product Description (optional)">
-        <select id="status">
-          <option value="in_stock">In Stock</option>
-          <option value="backordered">Backordered</option>
-          <option value="discontinued">Discontinued</option>
+        <input required id="unit-cost" type="number" min="0" step="0.01" placeholder="Unit Cost">
+        <input required id="selling-price" type="number" min="0" step="0.01" placeholder="Selling Price">
+        <input required id="available-qty" type="number" min="0" step="1" placeholder="Available Qty">
+        <select id="tax-category" required>
+          <option value="">Select Tax Category...</option>
+          <option value="Sales Tax">Sales Tax</option>
+          <option value="VAT">VAT</option>
+          <option value="No Tax">No Tax</option>
+          <option value="Excise">Excise</option>
         </select>
-        <input id="expiration" type="date" placeholder="Expiration">
       </div>
       <div class="form-row">
         <button type="submit" class="add-btn">Add Item</button>
       </div>
     </form>
-    <div class="valuation-box">
-      <button type="button" id="calculate-btn">Show Post-Tax Summary</button>
-      <span id="valuation-result" class="valuation-result"></span>
-    </div>
     <div class="inventory-list-section">
       <h2>Inventory List</h2>
       <div class="table-scroll">
@@ -574,13 +550,9 @@ function renderInventoryDashboard() {
               <th>Name</th>
               <th>Category</th>
               <th>Unit Cost</th>
+              <th>Selling Price</th>
               <th>Available Qty</th>
-              <th>Tax Code</th>
-              <th>Tax Exempt</th>
-              <th>ZIP Code</th>
-              <th>Status</th>
-              <th>Expires</th>
-              <th>Description</th>
+              <th>Tax Category</th>
               <th>Remove</th>
             </tr>
           </thead>
@@ -591,18 +563,8 @@ function renderInventoryDashboard() {
     </div>
   `;
 
-  // --- Inventory logic ---
-  let inventory = [];
-  let currentCategoryFilter = "All";
-  let uniqueCategories = () => [...new Set(inventory.map(item => item.category.trim()))].filter(Boolean);
-
-  // --- Tax calculation logic ---
-  function getTaxRate(zip, taxCode, taxExempt) {
-    if (taxExempt) return 0;
-    if (taxCode === "TX-GROCERY" || taxCode === "TX-MEDICAL") return 0;
-    if (zip === "10001") return 0.08; // New York
-    if (zip === "94105") return 0.09; // San Francisco
-    return 0.07; // Default
+  function uniqueCategories() {
+    return [...new Set(businessData.inventory.map(item => item.category && item.category.trim()))].filter(Boolean);
   }
 
   function renderCategoryFilters() {
@@ -612,130 +574,142 @@ function renderInventoryDashboard() {
     cats.forEach(cat => {
       const btn = document.createElement("button");
       btn.textContent = cat;
-      btn.className = "category-btn" + (currentCategoryFilter === cat ? " active" : "");
+      btn.className = "category-btn";
       btn.onclick = () => {
-        currentCategoryFilter = cat;
         document.getElementById('category-search').value = "";
-        renderEverything();
+        renderInventoryTable(cat);
       };
       container.appendChild(btn);
     });
   }
 
-  function getFilteredInventory() {
-    const searchValue = document.getElementById('category-search')?.value.trim().toLowerCase();
-    if (searchValue) {
-      return inventory.filter(item => item.category.toLowerCase().includes(searchValue));
-    }
-    if (currentCategoryFilter === "All") return inventory;
-    return inventory.filter(item => item.category === currentCategoryFilter);
-  }
-
-  function renderInventory() {
-    const filtered = getFilteredInventory();
+  function renderInventoryTable(filterCategory = "All") {
+    const searchValue = document.getElementById('category-search').value.trim().toLowerCase();
+    let filtered = businessData.inventory;
+    if (filterCategory !== "All") filtered = filtered.filter(item => item.category === filterCategory);
+    if (searchValue) filtered = filtered.filter(item => item.category && item.category.toLowerCase().includes(searchValue));
     const tbody = document.querySelector('#inventory-table tbody');
     tbody.innerHTML = '';
     filtered.forEach((item, idx) => {
-      const realIdx = inventory.findIndex(inv => inv === item);
       tbody.innerHTML += `
         <tr>
-          <td>${item.sku}</td>
-          <td>${item.name}</td>
-          <td>${item.category}</td>
-          <td>$${item.unitCost.toFixed(2)} / ${item.costUnit}</td>
-          <td>${item.availableQty} ${item.qtyUnit}</td>
-          <td>${item.taxCode}</td>
-          <td>${item.taxExempt ? "Yes" : "No"}</td>
-          <td>${item.zipCode || ""}</td>
-          <td>${item.status}</td>
-          <td>${item.expiration ? formatDate(item.expiration) : ""}</td>
-          <td>${item.description || ""}</td>
-          <td><button class="remove-btn" data-idx="${realIdx}">Remove</button></td>
+          <td>${item.sku || ""}</td>
+          <td>${item.name || ""}</td>
+          <td>${item.category || ""}</td>
+          <td>$${item.unitCost !== undefined && !isNaN(item.unitCost) ? Number(item.unitCost).toFixed(2) : ""}</td>
+          <td>$${item.sellingPrice !== undefined && !isNaN(item.sellingPrice) ? Number(item.sellingPrice).toFixed(2) : ""}</td>
+          <td>${item.availableQty !== undefined && !isNaN(item.availableQty) ? item.availableQty : ""}</td>
+          <td>${item.taxCategory || ""}</td>
+          <td><button class="remove-btn" data-idx="${idx}">Remove</button></td>
         </tr>
       `;
     });
     document.querySelectorAll('.remove-btn').forEach(btn => {
-      btn.onclick = () => { removeItem(Number(btn.dataset.idx)); };
+      btn.onclick = () => {
+        businessData.inventory.splice(Number(btn.dataset.idx), 1);
+        autoSyncInventoryToStatements();
+        saveData();
+        renderCategoryFilters();
+        renderInventoryTable(filterCategory);
+        renderIncomeStatement();
+        renderBalanceSheet();
+        renderCashFlow();
+      };
     });
-    renderCategorySummary(filtered);
+    document.getElementById('category-summary').innerHTML = `Showing <b>${filtered.length}</b> items.`;
   }
-  function formatDate(str) { if (!str) return ""; const d = new Date(str); return d.toLocaleDateString(); }
-  function renderCategorySummary(filtered) {
-    document.getElementById('category-summary').innerHTML =
-      `Showing <b>${filtered.length}</b> items.`;
-  }
+
+  // Tax auto-pop logic and popup
+  const categorySelect = document.getElementById('category');
+  const taxSelect = document.getElementById('tax-category');
+  categorySelect.addEventListener('change', () => {
+    let autoTax = "Sales Tax";
+    let popMsg = "";
+    if (categorySelect.value === "Grocery" || categorySelect.value === "Medical") {
+      autoTax = "No Tax";
+      popMsg = "This item is typically tax exempt.";
+    }
+    taxSelect.value = autoTax;
+    if (popMsg) alert(popMsg);
+  });
+
   function addItem(e) {
     e.preventDefault();
     const sku = document.getElementById('sku').value.trim();
     const name = document.getElementById('name').value.trim();
     const category = document.getElementById('category').value.trim();
     const unitCost = parseFloat(document.getElementById('unit-cost').value);
+    const sellingPrice = parseFloat(document.getElementById('selling-price').value);
     const availableQty = parseInt(document.getElementById('available-qty').value);
-    const costUnit = document.getElementById('cost-unit').value;
-    const qtyUnit = document.getElementById('qty-unit').value;
-    const taxCode = document.getElementById('tax-code').value;
-    const taxExempt = document.getElementById('tax-exempt').checked;
-    const zipCode = document.getElementById('zip-code').value.trim();
-    const description = document.getElementById('description').value.trim();
-    const status = document.getElementById('status').value;
-    const expiration = document.getElementById('expiration').value;
-    if (!sku || !name || !category || isNaN(unitCost) || isNaN(availableQty) || unitCost < 0 || availableQty < 0) {
+    const taxCategory = document.getElementById('tax-category').value;
+    if (!sku || !name || !category || isNaN(unitCost) || isNaN(sellingPrice) || isNaN(availableQty) || !taxCategory || unitCost < 0 || sellingPrice < 0 || availableQty < 0) {
       alert("Fill all required fields correctly.");
       return;
     }
-    inventory.push({
-      sku, name, category, unitCost, costUnit, availableQty, qtyUnit,
-      taxCode, taxExempt, zipCode, description, status, expiration
-    });
-    renderEverything();
+    const item = { sku, name, category, unitCost, sellingPrice, availableQty, taxCategory };
+    businessData.inventory.push(item);
+
+   
+    // Save tax info (auto)
+    if (taxCategory !== "No Tax") {
+      businessData.incomeStatement.taxes.push({
+        name: name + " (" + taxCategory + ")",
+        amount: Math.round(unitCost * availableQty * taxRateForCategory(taxCategory) * 100) / 100
+      });
+    }
+
+    autoSyncInventoryToStatements();
+    saveData();
+    renderCategoryFilters();
+    renderInventoryTable();
+    renderIncomeStatement();
+    renderBalanceSheet();
+    renderCashFlow();
     document.getElementById('add-form').reset();
   }
-  function removeItem(idx) {
-    inventory.splice(idx, 1);
-    renderEverything();
-  }
-  function showPostTaxPopup() {
-    const filtered = getFilteredInventory();
-    let subtotal = filtered.reduce((sum, item) => sum + item.unitCost * item.availableQty, 0);
-    let tax = filtered.reduce((sum, item) => {
-      const rate = getTaxRate(item.zipCode, item.taxCode, item.taxExempt);
-      return sum + (item.unitCost * item.availableQty * rate);
-    }, 0);
-    let total = subtotal + tax;
-    alert(`Subtotal: $${subtotal.toFixed(2)}\nTax: $${tax.toFixed(2)}\nTotal: $${total.toFixed(2)}`);
-    document.getElementById('valuation-result').textContent =
-      `Subtotal: $${subtotal.toFixed(2)}, Tax: $${tax.toFixed(2)}, Total: $${total.toFixed(2)}`;
-  }
-  function renderEverything() {
-    renderCategoryFilters();
-    renderInventory();
 
-    // Responsive tax exemption logic & auto tax code switching
-    const categorySelect = document.getElementById('category');
-    const taxExemptCheckbox = document.getElementById('tax-exempt');
-    const taxCodeSelect = document.getElementById('tax-code');
-    categorySelect.onchange = function () {
-      const val = categorySelect.value.toLowerCase();
-      // Auto-switch tax exempt
-      if (val === "grocery" || val === "medical") {
-        taxExemptCheckbox.checked = true;
-      } else {
-        taxExemptCheckbox.checked = false;
-      }
-      // Auto-switch tax code
-      if (val === "grocery")       taxCodeSelect.value = "TX-GROCERY";
-      else if (val === "medical")  taxCodeSelect.value = "TX-MEDICAL";
-      else if (val === "electronics") taxCodeSelect.value = "TX-ELECTRONICS";
-      else                          taxCodeSelect.value = "TX-GENERAL";
-    };
-  }
   document.getElementById('add-form').onsubmit = addItem;
-  document.getElementById('calculate-btn').onclick = showPostTaxPopup;
   document.getElementById('category-search').oninput = function () {
-    currentCategoryFilter = "All";
-    renderEverything();
+    renderInventoryTable();
   };
-  renderEverything();
+
+  renderCategoryFilters();
+  renderInventoryTable();
+}
+
+// --- 2. Auto-Link Inventory to Financial Statements ---
+function autoSyncInventoryToStatements() {
+  // Revenue/COGS for Income Statement
+  businessData.incomeStatement.revenues = businessData.inventory.map(item => ({
+    name: item.name,
+    amount: (item.sellingPrice || 0) * (item.availableQty || 0)
+  }));
+
+  businessData.incomeStatement.beginInventory = businessData.inventory.map(item => ({
+    name: item.name,
+    amount: (item.unitCost || 0) * (item.availableQty || 0)
+  }));
+
+  // Balance Sheet
+  businessData.balanceSheet.currentAssets = businessData.inventory.filter(item =>
+    !["Electronics", "Medical"].includes(item.category)
+  ).map(item => ({
+    name: item.name,
+    amount: (item.unitCost || 0) * (item.availableQty || 0)
+  }));
+
+  businessData.balanceSheet.fixedAssets = businessData.inventory.filter(item =>
+    ["Electronics", "Medical"].includes(item.category)
+  ).map(item => ({
+    name: item.name,
+    amount: (item.unitCost || 0) * (item.availableQty || 0)
+  }));
+
+  // Cash Flow (outflow for purchases)
+  businessData.cashFlow.operOut = businessData.inventory.map(item => ({
+    name: `Purchase: ${item.name}`,
+    amount: (item.unitCost || 0) * (item.availableQty || 0)
+  }));
 }
 
 // --- Initial tab render ---
